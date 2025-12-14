@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+
+@layer components {
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 outline-none transition-all duration-200;
+  }
+  .input-field:focus {
+    @apply border-indigo-500 ring-4 ring-indigo-500/10;
+  }
+}
+
