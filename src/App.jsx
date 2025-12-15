@@ -564,19 +564,55 @@ export default function App() {
         return canvas.toDataURL('image/png');
     };
 
+    const dataURLtoFile = async (dataUrl, fileName) => {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        return new File([blob], fileName, { type: blob.type });
+    };
+
     const handleDownload = async () => {
         setLoading(true);
         try {
             const finalUrl = await drawCanvas();
+            const fileName = `qrcode-${activeTab}-${Date.now()}.png`;
+
+            // Try Web Share API first (Mobile preferred)
+            // Check if navigator.share is available
+            if (navigator.share) {
+                try {
+                    const file = await dataURLtoFile(finalUrl, fileName);
+
+                    // Validate if files can be shared
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'QR Studio',
+                            text: 'Created with QR Studio'
+                        });
+                        setLoading(false);
+                        return; // Successfully shared
+                    }
+                } catch (shareError) {
+                    // Ignore AbortError (User cancelled share sheet)
+                    if (shareError.name === 'AbortError') {
+                        setLoading(false);
+                        return;
+                    }
+                    console.warn('Web Share API failed, falling back to download:', shareError);
+                }
+            }
+
+            // Fallback: Standard Download Link (Desktop)
             const link = document.createElement('a');
             link.href = finalUrl;
-            link.download = `qrcode-${activeTab}-${Date.now()}.png`;
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
         } catch (e) {
             console.error(e);
-            alert('เกิดข้อผิดพลาดในการดาวน์โหลด');
+            alert(lang === 'th' ? 'เกิดข้อผิดพลาดในการดาวน์โหลด' : 'Error downloading image');
         }
         setLoading(false);
     };
